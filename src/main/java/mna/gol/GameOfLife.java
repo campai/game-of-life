@@ -16,21 +16,24 @@ import javax.swing.*;
 @Slf4j
 public class GameOfLife extends JPanel implements KeyListener {
     @Serial
-    private static final long serialVersionUID = -1234L;
+    private static final long serialVersionUID = -2559666472917571856L;
 
     private static final byte LIVE = 1;
     private static final byte DEAD = 0;
 
-    private static final int WIDTH = 130;
-    private static final int HEIGHT = 130;
-    private static final int INIT_LIFE_AMOUNT = 1_000;
+    private static final int BOARD_WIDTH = 130;
+    private static final int BOARD_HEIGHT = 130;
+    private static final int FIRST_GENERATION_LIVE_CELLS = 1_000;
 
     private volatile boolean gameResetScheduled = false;
     private volatile boolean gameIsRunning = false;
 
     public static void main(String[] args) {
         var gameOfLife = new GameOfLife();
+        createGameUI(gameOfLife);
+    }
 
+    private static void createGameUI(GameOfLife gameOfLife) {
         var frame = new JFrame("Game of Life");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(true);
@@ -44,17 +47,16 @@ public class GameOfLife extends JPanel implements KeyListener {
     }
 
     @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+    protected void paintComponent(Graphics graphics) {
+        super.paintComponent(graphics);
 
-        var g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        ((Graphics2D) graphics).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         if (!gameIsRunning) {
             new Thread(() -> {
                 try {
                     gameIsRunning = true;
-                    run(WIDTH, HEIGHT, INIT_LIFE_AMOUNT);
+                    startGame(BOARD_WIDTH, BOARD_HEIGHT, FIRST_GENERATION_LIVE_CELLS);
                 } catch (InterruptedException | IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -63,20 +65,20 @@ public class GameOfLife extends JPanel implements KeyListener {
     }
 
     @SuppressWarnings("SameParameterValue")
-    private void run(int width, int height, int initLifeNumber) throws InterruptedException, IOException {
-        if (width < 1 || height < 1) {
-            throw new IllegalArgumentException("Both width and height of the board should be bigger than 0!");
+    private void startGame(int boardWidth, int boardHeight, int initLiveCells) throws InterruptedException, IOException {
+        if (boardWidth < 1 || boardHeight < 1) {
+            throw new IllegalArgumentException("Both boardWidth and boardHeight of the board should be bigger than 0!");
         }
 
-        var board = new byte[height][width];
-        seedLife(board, initLifeNumber);
+        var board = new byte[boardHeight][boardWidth];
+        seedLife(board, initLiveCells);
 
         while (gameIsRunning) {
             if (this.gameResetScheduled) {
-                resetGame(initLifeNumber, board);
+                resetGame(initLiveCells, board);
             }
 
-            updateBoard(width, height, board);
+            updateBoard(boardWidth, boardHeight, board);
 
             drawBoard(board);
             //noinspection BusyWait
@@ -86,18 +88,49 @@ public class GameOfLife extends JPanel implements KeyListener {
     }
 
     private void updateBoard(int width, int height, byte[][] board) {
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                board[i][j] = calculateLife(board[i][j], countNeighbors(board, i, j));
+        for (int x = 0; x < height; x++) {
+            for (int y = 0; y < width; y++) {
+                board[x][y] = calculateNextGeneration(board[x][y], countNeighbors(board, x, y));
             }
         }
+    }
+
+    private byte calculateNextGeneration(byte cell, int neighbors) {
+        return switch (cell) {
+            case DEAD -> neighbors == 3 ? LIVE : DEAD;
+            case LIVE -> {
+                if (neighbors < 2 || neighbors > 3) {
+                    yield DEAD;
+                } else {
+                    yield LIVE;
+                }
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + cell);
+        };
     }
 
     private void resetGame(int initLifeNumber, byte[][] board) {
         Arrays.stream(board)
             .forEach(row -> Arrays.fill(row, (byte) 0));
+
         seedLife(board, initLifeNumber);
         this.gameResetScheduled = false;
+    }
+
+    private void seedLife(byte[][] board, int initLifeNumber) {
+        var randGen = ThreadLocalRandom.current();
+        var seededLife = initLifeNumber;
+
+        while (seededLife > 0) {
+            var xCoordinate = randGen.nextInt(board.length);
+            var yCoordinate = randGen.nextInt(board[0].length);
+
+            if (board[xCoordinate][yCoordinate] == DEAD) {
+                board[xCoordinate][yCoordinate] = LIVE;
+                seededLife--;
+            }
+        }
+
     }
 
     private void drawBoard(byte[][] board) {
@@ -128,78 +161,34 @@ public class GameOfLife extends JPanel implements KeyListener {
         canvas.setColor(Color.WHITE);
         canvas.drawString(stats, 0, getHeight() - 3);
 
+        log.trace(stats);
         this.getGraphics().drawImage(bufferedImage, 0, 0, null);
     }
 
-    private byte calculateLife(byte cell, byte neighbors) {
-        return switch (cell) {
-            case DEAD -> neighbors == 3 ? LIVE : DEAD;
-            case LIVE -> {
-                if (neighbors < 2 || neighbors > 3) {
-                    yield DEAD;
-                } else {
-                    yield LIVE;
-                }
-            }
-            default -> throw new IllegalStateException("Unexpected value: " + cell);
-        };
-    }
-
-    private byte countNeighbors(byte[][] board, int x, int y) {
-        var neighbors = (byte) 0;
-        var height = board[0].length;
+    private int countNeighbors(byte[][] board, int x, int y) {
         var width = board.length;
+        var height = board[0].length;
 
-        if (x - 1 >= 0) {
-            neighbors += board[x - 1][y];
-        }
+        // @formatter:off
+        int[][] neighborsRelativePositions = {
+            {-1, -1}, { 0, -1}, {1, -1},
+            {-1,  0},           {1,  0},
+            {-1,  1}, { 0,  1}, {1,  1}
+        };
+        // @formatter:on
 
-        if (x + 1 < board.length) {
-            neighbors += board[x + 1][y];
-        }
+        var neighbors = 0;
+        for (var neighborPosition : neighborsRelativePositions) {
+            int neighborX = x + neighborPosition[0];
+            int neighborY = y + neighborPosition[1];
 
-        if (y - 1 >= 0) {
-            neighbors += board[x][y - 1];
-        }
-
-        if (y + 1 < height) {
-            neighbors += board[x][y + 1];
-        }
-
-        if (x - 1 >= 0 && y - 1 >= 0) {
-            neighbors += board[x - 1][y - 1];
-        }
-
-        if (x - 1 >= 0 && y + 1 < height) {
-            neighbors += board[x - 1][y + 1];
-        }
-
-        if (x + 1 < width && y - 1 >= 0) {
-            neighbors += board[x + 1][y - 1];
-        }
-
-        if (x + 1 < width && y + 1 < height) {
-            neighbors += board[x + 1][y + 1];
-        }
-
-        log.trace("[{}, {}]: {}", x, y, neighbors);
-        return neighbors;
-    }
-
-    private void seedLife(byte[][] board, int initLifeNumber) {
-        var randGen = ThreadLocalRandom.current();
-        var seededLife = initLifeNumber;
-
-        while (seededLife > 0) {
-            var xCoordinate = randGen.nextInt(board.length);
-            var yCoordinate = randGen.nextInt(board[0].length);
-
-            if (board[xCoordinate][yCoordinate] == DEAD) {
-                board[xCoordinate][yCoordinate] = LIVE;
-                seededLife--;
+            if (neighborX >= 0 && neighborX < width && neighborY >= 0 && neighborY < height) {
+                neighbors += board[neighborX][neighborY];
             }
         }
 
+        log.trace("[{}, {}] has neighbors: {}", x, y, neighbors);
+        return neighbors;
     }
 
     @Override
@@ -212,11 +201,11 @@ public class GameOfLife extends JPanel implements KeyListener {
 
     @Override
     public void keyTyped(KeyEvent e) {
-        //intentionally left empty
+        // intentionally left empty
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        //intentionally left empty
+        // intentionally left empty
     }
 }
