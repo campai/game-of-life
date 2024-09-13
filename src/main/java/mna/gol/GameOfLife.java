@@ -1,16 +1,16 @@
 package mna.gol;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mna.gol.engine.RulesEngine;
+import mna.gol.entity.Board;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.Serial;
-import java.util.Arrays;
-import java.util.concurrent.ThreadLocalRandom;
 import javax.swing.*;
 
 /**
@@ -27,12 +27,11 @@ import javax.swing.*;
  * Source: <a href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life">Wikipedia: Game Of Life</a>
  */
 @Slf4j
+@RequiredArgsConstructor
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP2"}, justification = "Board is intentionally mutable, by design.")
 public class GameOfLife extends JPanel implements KeyListener {
     @Serial
     private static final long serialVersionUID = -2559666472917571856L;
-
-    private static final byte LIVE = 1;
-    private static final byte DEAD = 0;
 
     private static final int BOARD_WIDTH = 130;
     private static final int BOARD_HEIGHT = 130;
@@ -41,8 +40,11 @@ public class GameOfLife extends JPanel implements KeyListener {
     private volatile boolean gameResetScheduled = false;
     private volatile boolean gameIsRunning = false;
 
+    private final transient Board board;
+    private final transient RulesEngine rulesEngine;
+
     public static void main(String[] args) {
-        var gameOfLife = new GameOfLife();
+        var gameOfLife = new GameOfLife(new Board(BOARD_WIDTH, BOARD_HEIGHT), new RulesEngine());
         createGameUI(gameOfLife);
     }
 
@@ -83,125 +85,25 @@ public class GameOfLife extends JPanel implements KeyListener {
             throw new IllegalArgumentException("Both boardWidth and boardHeight of the board should be bigger than 0!");
         }
 
-        var board = new byte[boardHeight][boardWidth];
-        seedLife(board, initLiveCells);
+        rulesEngine.seedLife(board, initLiveCells);
 
         while (gameIsRunning) {
             if (this.gameResetScheduled) {
-                resetGame(initLiveCells, board);
+                resetGame(board, initLiveCells);
             }
 
-            updateBoard(boardWidth, boardHeight, board);
-
-            drawBoard(board);
+            board.update(rulesEngine);
+            board.draw((Graphics2D) this.getGraphics(), this.getWidth(), this.getHeight());
             //noinspection BusyWait
             Thread.sleep(50);
         }
 
     }
 
-    private void updateBoard(int width, int height, byte[][] board) {
-        for (int x = 0; x < height; x++) {
-            for (int y = 0; y < width; y++) {
-                board[x][y] = calculateNextGeneration(board[x][y], countNeighbors(board, x, y));
-            }
-        }
-    }
-
-    private byte calculateNextGeneration(byte cell, int neighbors) {
-        return switch (cell) {
-            case DEAD -> neighbors == 3 ? LIVE : DEAD;
-            case LIVE -> {
-                if (neighbors < 2 || neighbors > 3) {
-                    yield DEAD;
-                } else {
-                    yield LIVE;
-                }
-            }
-            default -> throw new IllegalStateException("Unexpected value: " + cell);
-        };
-    }
-
-    private void resetGame(int initLifeNumber, byte[][] board) {
-        Arrays.stream(board)
-            .forEach(row -> Arrays.fill(row, (byte) 0));
-
-        seedLife(board, initLifeNumber);
+    private void resetGame(Board board, int initLifeNumber) {
+        board.reset();
+        rulesEngine.seedLife(board, initLifeNumber);
         this.gameResetScheduled = false;
-    }
-
-    private void seedLife(byte[][] board, int initLifeNumber) {
-        var randGen = ThreadLocalRandom.current();
-        var seededLife = initLifeNumber;
-
-        while (seededLife > 0) {
-            var xCoordinate = randGen.nextInt(board.length);
-            var yCoordinate = randGen.nextInt(board[0].length);
-
-            if (board[xCoordinate][yCoordinate] == DEAD) {
-                board[xCoordinate][yCoordinate] = LIVE;
-                seededLife--;
-            }
-        }
-
-    }
-
-    private void drawBoard(byte[][] board) {
-        var bufferedImage = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
-
-        var canvas = bufferedImage.createGraphics();
-        canvas.setBackground(Color.BLACK);
-        canvas.clearRect(0, 0, getWidth(), getHeight());
-
-        var xScale = Math.max((double) getWidth() / board.length, 1d);
-        var yScale = Math.max((double) getHeight() / board[0].length, 1d);
-
-        var padding = 10;
-        var liveObjects = 0;
-        for (var x = 0; x < board.length; x++) {
-            for (int y = 0; y < board[0].length; y++) {
-                liveObjects += board[x][y];
-
-                canvas.setColor(board[x][y] == LIVE ? Color.GREEN : Color.DARK_GRAY);
-
-                var xCanvas = padding + (x * xScale);
-                var yCanvas = padding + (y * yScale);
-                canvas.draw(new Rectangle2D.Double(xCanvas, yCanvas, 3, 3));
-            }
-        }
-
-        var stats = "Live: %06d   Dead: %06d   |   Click <SPACE> to reset.".formatted(liveObjects, (board.length * board[0].length) - liveObjects);
-        canvas.setColor(Color.WHITE);
-        canvas.drawString(stats, 0, getHeight() - 3);
-
-        log.trace(stats);
-        this.getGraphics().drawImage(bufferedImage, 0, 0, null);
-    }
-
-    private int countNeighbors(byte[][] board, int x, int y) {
-        var width = board.length;
-        var height = board[0].length;
-
-        // @formatter:off
-        int[][] neighborsRelativePositions = {
-            {-1, -1}, { 0, -1}, {1, -1},
-            {-1,  0},           {1,  0},
-            {-1,  1}, { 0,  1}, {1,  1}
-        };
-        // @formatter:on
-
-        var neighbors = 0;
-        for (var neighborPosition : neighborsRelativePositions) {
-            int neighborX = x + neighborPosition[0];
-            int neighborY = y + neighborPosition[1];
-
-            if (neighborX >= 0 && neighborX < width && neighborY >= 0 && neighborY < height) {
-                neighbors += board[neighborX][neighborY];
-            }
-        }
-
-        log.trace("[{}, {}] has neighbors: {}", x, y, neighbors);
-        return neighbors;
     }
 
     @Override
