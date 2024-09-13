@@ -35,9 +35,9 @@ public class GameOfLife extends JPanel implements KeyListener {
     @Serial
     private static final long serialVersionUID = -2559666472917571856L;
 
-    private static final int BOARD_WIDTH = 130;
-    private static final int BOARD_HEIGHT = 130;
-    private static final int FIRST_GENERATION_LIVE_CELLS = 1_000;
+    private static final int BOARD_WIDTH = 200;
+    private static final int BOARD_HEIGHT = 200;
+    private static final int FIRST_GENERATION_LIVE_CELLS = 1_600;
 
     private volatile boolean gameResetScheduled = false;
     private volatile boolean gameIsRunning = false;
@@ -95,7 +95,7 @@ public class GameOfLife extends JPanel implements KeyListener {
             }
 
             rulesEngine.calculateNextGeneration(board);
-            board.draw((Graphics2D) this.getGraphics(), this.getWidth(), this.getHeight());
+            board.render((Graphics2D) this.getGraphics(), this.getWidth(), this.getHeight());
             //noinspection BusyWait
             Thread.sleep(50);
         }
