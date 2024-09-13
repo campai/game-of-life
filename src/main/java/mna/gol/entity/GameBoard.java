@@ -1,7 +1,5 @@
 package mna.gol.entity;
 
-import java.awt.*;
-
 public interface GameBoard {
     int getWidth();
 
@@ -12,6 +10,4 @@ public interface GameBoard {
     void setCellState(int x, int y, CellState state);
 
     void reset();
-
-    void render(Graphics2D graphics, int width, int height);
 }

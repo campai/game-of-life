@@ -2,10 +2,6 @@ package mna.gol.entity;
 
 import lombok.Getter;
 
-import java.awt.*;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-
 public class GridGameBoard implements GameBoard {
     @Getter
     private final int width;
@@ -48,37 +44,5 @@ public class GridGameBoard implements GameBoard {
                 cells[x][y].setState(CellState.DEAD);
             }
         }
-    }
-
-    @Override
-    public void render(Graphics2D graphics, int canvasWidth, int canvasHeight) {
-        var bufferedImage = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_RGB);
-
-        var canvas = bufferedImage.createGraphics();
-        canvas.setBackground(Color.BLACK);
-        canvas.clearRect(0, 0, canvasWidth, canvasHeight);
-
-        var padding = 10;
-        var xScale = Math.max((double) (canvasWidth - padding * 2) / width, 1d);
-        var yScale = Math.max((double) (canvasHeight - padding * 2) / height, 1d);
-
-        var liveObjects = 0;
-        for (var x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                liveObjects += cells[x][y].isAlive() ? 1 : 0;
-
-                canvas.setColor(cells[x][y].isAlive() ? Color.GREEN : Color.DARK_GRAY);
-
-                var xCanvas = padding + (x * xScale);
-                var yCanvas = padding + (y * yScale);
-                canvas.draw(new Rectangle2D.Double(xCanvas, yCanvas, 1, 1));
-            }
-        }
-
-        var stats = "Live: %06d   Dead: %06d   |   Click <SPACE> to reset.".formatted(liveObjects, (width * height) - liveObjects);
-        canvas.setColor(Color.WHITE);
-        canvas.drawString(stats, 0, canvasHeight - 3);
-
-        graphics.drawImage(bufferedImage, 0, 0, null);
     }
 }

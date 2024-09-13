@@ -7,6 +7,7 @@ import mna.gol.engine.ClassicGameOfLifeEngine;
 import mna.gol.engine.RulesEngine;
 import mna.gol.entity.GameBoard;
 import mna.gol.entity.GridGameBoard;
+import mna.gol.ui.SwingRenderer;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -88,6 +89,7 @@ public class GameOfLife extends JPanel implements KeyListener {
         }
 
         rulesEngine.seedLife(board, initLiveCells);
+        var renderer = new SwingRenderer(this);
 
         while (gameIsRunning) {
             if (this.gameResetScheduled) {
@@ -95,7 +97,8 @@ public class GameOfLife extends JPanel implements KeyListener {
             }
 
             rulesEngine.calculateNextGeneration(board);
-            board.render((Graphics2D) this.getGraphics(), this.getWidth(), this.getHeight());
+            renderer.render(board);
+
             //noinspection BusyWait
             Thread.sleep(50);
         }
