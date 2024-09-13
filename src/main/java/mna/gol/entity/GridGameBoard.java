@@ -51,17 +51,17 @@ public class GridGameBoard implements GameBoard {
     }
 
     @Override
-    public void draw(Graphics2D graphics, int canvasWidth, int canvasHeight) {
+    public void render(Graphics2D graphics, int canvasWidth, int canvasHeight) {
         var bufferedImage = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_RGB);
 
         var canvas = bufferedImage.createGraphics();
         canvas.setBackground(Color.BLACK);
         canvas.clearRect(0, 0, canvasWidth, canvasHeight);
 
-        var xScale = Math.max((double) canvasWidth / width, 1d);
-        var yScale = Math.max((double) canvasHeight / height, 1d);
-
         var padding = 10;
+        var xScale = Math.max((double) (canvasWidth - padding * 2) / width, 1d);
+        var yScale = Math.max((double) (canvasHeight - padding * 2) / height, 1d);
+
         var liveObjects = 0;
         for (var x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -71,7 +71,7 @@ public class GridGameBoard implements GameBoard {
 
                 var xCanvas = padding + (x * xScale);
                 var yCanvas = padding + (y * yScale);
-                canvas.draw(new Rectangle2D.Double(xCanvas, yCanvas, 3, 3));
+                canvas.draw(new Rectangle2D.Double(xCanvas, yCanvas, 1, 1));
             }
         }
 

@@ -13,5 +13,5 @@ public interface GameBoard {
 
     void reset();
 
-    void draw(Graphics2D graphics, int width, int height);
+    void render(Graphics2D graphics, int width, int height);
 }
