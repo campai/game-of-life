@@ -5,7 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mna.gol.engine.ClassicGameOfLifeEngine;
 import mna.gol.engine.RulesEngine;
-import mna.gol.entity.Board;
+import mna.gol.entity.GameBoard;
+import mna.gol.entity.GridGameBoard;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -29,7 +30,7 @@ import javax.swing.*;
  */
 @Slf4j
 @RequiredArgsConstructor
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP2"}, justification = "Board is intentionally mutable, by design.")
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP2"}, justification = "GameBoard and RulesEngine are intentionally mutable, by design.")
 public class GameOfLife extends JPanel implements KeyListener {
     @Serial
     private static final long serialVersionUID = -2559666472917571856L;
@@ -41,11 +42,11 @@ public class GameOfLife extends JPanel implements KeyListener {
     private volatile boolean gameResetScheduled = false;
     private volatile boolean gameIsRunning = false;
 
-    private final transient Board board;
+    private final transient GameBoard board;
     private final transient RulesEngine rulesEngine;
 
     public static void main(String[] args) {
-        var gameOfLife = new GameOfLife(new Board(BOARD_WIDTH, BOARD_HEIGHT), new ClassicGameOfLifeEngine());
+        var gameOfLife = new GameOfLife(new GridGameBoard(BOARD_WIDTH, BOARD_HEIGHT), new ClassicGameOfLifeEngine());
         createGameUI(gameOfLife);
     }
 
@@ -93,7 +94,7 @@ public class GameOfLife extends JPanel implements KeyListener {
                 resetGame(board, initLiveCells);
             }
 
-            board.update(rulesEngine);
+            rulesEngine.calculateNextGeneration(board);
             board.draw((Graphics2D) this.getGraphics(), this.getWidth(), this.getHeight());
             //noinspection BusyWait
             Thread.sleep(50);
@@ -101,7 +102,7 @@ public class GameOfLife extends JPanel implements KeyListener {
 
     }
 
-    private void resetGame(Board board, int initLifeNumber) {
+    private void resetGame(GameBoard board, int initLifeNumber) {
         board.reset();
         rulesEngine.seedLife(board, initLifeNumber);
         this.gameResetScheduled = false;

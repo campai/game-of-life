@@ -4,15 +4,15 @@ import static mna.gol.entity.CellState.DEAD;
 import static mna.gol.entity.CellState.LIVE;
 
 import lombok.extern.slf4j.Slf4j;
-import mna.gol.entity.Board;
 import mna.gol.entity.CellState;
+import mna.gol.entity.GameBoard;
 
 import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 public class ClassicGameOfLifeEngine implements RulesEngine {
     @Override
-    public void seedLife(Board board, int initLifeNumber) {
+    public void seedLife(GameBoard board, int initLifeNumber) {
         var randGen = ThreadLocalRandom.current();
         var seededLife = initLifeNumber;
 
@@ -20,15 +20,15 @@ public class ClassicGameOfLifeEngine implements RulesEngine {
             var xCoordinate = randGen.nextInt(board.getWidth());
             var yCoordinate = randGen.nextInt(board.getHeight());
 
-            if (!board.isCellAlive(xCoordinate, yCoordinate)) {
-                board.setCellState(xCoordinate, yCoordinate, CellState.LIVE);
+            if (board.getCellState(xCoordinate, yCoordinate) == DEAD) {
+                board.setCellState(xCoordinate, yCoordinate, LIVE);
                 seededLife--;
             }
         }
     }
 
     @Override
-    public void calculateNextGeneration(Board board) {
+    public void calculateNextGeneration(GameBoard board) {
         var neighbors = 0;
         for (var x = 0; x < board.getHeight(); x++) {
             for (var y = 0; y < board.getWidth(); y++) {
@@ -39,7 +39,7 @@ public class ClassicGameOfLifeEngine implements RulesEngine {
         }
     }
 
-    private CellState calculateNextGenCellState(Board board, int x, int y, int neighbors) {
+    private CellState calculateNextGenCellState(GameBoard board, int x, int y, int neighbors) {
         return switch (board.getCellState(x, y)) {
             case DEAD -> neighbors == 3 ? LIVE : DEAD;
             case LIVE -> {
@@ -52,7 +52,7 @@ public class ClassicGameOfLifeEngine implements RulesEngine {
         };
     }
 
-    private int countNeighbors(Board board, int x, int y) {
+    private int countNeighbors(GameBoard board, int x, int y) {
         var width = board.getWidth();
         var height = board.getHeight();
 
@@ -70,7 +70,7 @@ public class ClassicGameOfLifeEngine implements RulesEngine {
             int neighborY = y + neighborPosition[1];
 
             if (neighborX >= 0 && neighborX < width && neighborY >= 0 && neighborY < height) {
-                neighbors += board.isCellAlive(neighborX, neighborY) ? 1 : 0;
+                neighbors += board.getCellState(neighborX, neighborY) == LIVE ? 1 : 0;
             }
         }
 

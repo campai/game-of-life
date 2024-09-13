@@ -1,9 +1,9 @@
 package mna.gol.engine;
 
-import mna.gol.entity.Board;
+import mna.gol.entity.GameBoard;
 
 public interface RulesEngine {
-    void seedLife(Board board, int initLiveCells);
+    void seedLife(GameBoard board, int initLiveCells);
 
-    void calculateNextGeneration(Board board);
+    void calculateNextGeneration(GameBoard board);
 }

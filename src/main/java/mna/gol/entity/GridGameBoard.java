@@ -1,13 +1,12 @@
 package mna.gol.entity;
 
 import lombok.Getter;
-import mna.gol.engine.RulesEngine;
 
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
-public class Board {
+public class GridGameBoard implements GameBoard {
     @Getter
     private final int width;
     @Getter
@@ -15,7 +14,7 @@ public class Board {
 
     private final Cell[][] cells;
 
-    public Board(int width, int height) {
+    public GridGameBoard(int width, int height) {
         this.width = width;
         this.height = height;
 
@@ -32,18 +31,17 @@ public class Board {
         }
     }
 
-    public boolean isCellAlive(int x, int y) {
-        return cells[x][y].isAlive();
-    }
-
+    @Override
     public CellState getCellState(int x, int y) {
         return cells[x][y].getState();
     }
 
+    @Override
     public void setCellState(int x, int y, CellState state) {
         cells[x][y].setState(state);
     }
 
+    @Override
     public void reset() {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -52,10 +50,7 @@ public class Board {
         }
     }
 
-    public void update(RulesEngine rulesEngine) {
-        rulesEngine.calculateNextGeneration(this);
-    }
-
+    @Override
     public void draw(Graphics2D graphics, int canvasWidth, int canvasHeight) {
         var bufferedImage = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_RGB);
 
