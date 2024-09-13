@@ -11,10 +11,16 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 public class ClassicGameOfLifeEngine implements RulesEngine {
+    private final int firstGenerationLiveCells;
+
+    public ClassicGameOfLifeEngine(int firstGenerationLiveCells) {
+        this.firstGenerationLiveCells = firstGenerationLiveCells;
+    }
+
     @Override
-    public void seedLife(GameBoard board, int initLifeNumber) {
+    public void seedLife(GameBoard board) {
         var randGen = ThreadLocalRandom.current();
-        var seededLife = initLifeNumber;
+        var seededLife = firstGenerationLiveCells;
 
         while (seededLife > 0) {
             var xCoordinate = randGen.nextInt(board.getWidth());

@@ -1,5 +1,6 @@
-package mna.gol.ui;
+package mna.gol.graphic;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import mna.gol.entity.CellState;
 import mna.gol.entity.GameBoard;
@@ -10,6 +11,7 @@ import java.awt.image.BufferedImage;
 import javax.swing.*;
 
 @RequiredArgsConstructor
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP2"}, justification = "'canvas' is by design mutable.")
 public class SwingRenderer implements Renderer {
     private static final Color CANVAS_BACKGROUND_COLOR = Color.BLACK;
     private static final Color LIVE_CELL_COLOR = Color.GREEN;

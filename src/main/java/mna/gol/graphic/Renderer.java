@@ -1,4 +1,4 @@
-package mna.gol.ui;
+package mna.gol.graphic;
 
 import mna.gol.entity.GameBoard;
 

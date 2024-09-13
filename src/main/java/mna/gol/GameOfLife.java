@@ -1,20 +1,12 @@
 package mna.gol;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import mna.gol.engine.ClassicGameOfLifeEngine;
 import mna.gol.engine.RulesEngine;
 import mna.gol.entity.GameBoard;
-import mna.gol.entity.GridGameBoard;
-import mna.gol.ui.SwingRenderer;
-
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.io.IOException;
-import java.io.Serial;
-import javax.swing.*;
+import mna.gol.graphic.Renderer;
 
 /**
  * The universe of the Game of Life is an infinite two-dimensional orthogonal grid of square cells, each of which is in one of two possible states, alive or dead, or "populated" or "unpopulated". Every cell interacts with its eight neighbours, which are the cells that are horizontally, vertically, or diagonally adjacent. At each step in time, the following transitions occur:
@@ -32,68 +24,21 @@ import javax.swing.*;
 @Slf4j
 @RequiredArgsConstructor
 @SuppressFBWarnings(value = {"EI_EXPOSE_REP2"}, justification = "GameBoard and RulesEngine are intentionally mutable, by design.")
-public class GameOfLife extends JPanel implements KeyListener {
-    @Serial
-    private static final long serialVersionUID = -2559666472917571856L;
+public class GameOfLife {
+    @Getter
+    private volatile boolean isRunning = false;
+    private volatile boolean scheduledGameReset = false;
 
-    private static final int BOARD_WIDTH = 200;
-    private static final int BOARD_HEIGHT = 200;
-    private static final int FIRST_GENERATION_LIVE_CELLS = 1_600;
+    private final GameBoard board;
+    private final RulesEngine rulesEngine;
 
-    private volatile boolean gameResetScheduled = false;
-    private volatile boolean gameIsRunning = false;
+    public void startGame(Renderer renderer) throws InterruptedException {
+        this.isRunning = true;
+        rulesEngine.seedLife(board);
 
-    private final transient GameBoard board;
-    private final transient RulesEngine rulesEngine;
-
-    public static void main(String[] args) {
-        var gameOfLife = new GameOfLife(new GridGameBoard(BOARD_WIDTH, BOARD_HEIGHT), new ClassicGameOfLifeEngine());
-        createGameUI(gameOfLife);
-    }
-
-    private static void createGameUI(GameOfLife gameOfLife) {
-        var frame = new JFrame("Game of Life");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(true);
-        frame.add(gameOfLife);
-        frame.setSize(1400, 960);
-        frame.addKeyListener(gameOfLife);
-        frame.setFocusable(true);
-        frame.requestFocus();
-
-        frame.setVisible(true);
-    }
-
-    @Override
-    protected void paintComponent(Graphics graphics) {
-        super.paintComponent(graphics);
-
-        ((Graphics2D) graphics).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        if (!gameIsRunning) {
-            new Thread(() -> {
-                try {
-                    gameIsRunning = true;
-                    startGame(BOARD_WIDTH, BOARD_HEIGHT, FIRST_GENERATION_LIVE_CELLS);
-                } catch (InterruptedException | IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }).start();
-        }
-    }
-
-    @SuppressWarnings("SameParameterValue")
-    private void startGame(int boardWidth, int boardHeight, int initLiveCells) throws InterruptedException, IOException {
-        if (boardWidth < 1 || boardHeight < 1) {
-            throw new IllegalArgumentException("Both boardWidth and boardHeight of the board should be bigger than 0!");
-        }
-
-        rulesEngine.seedLife(board, initLiveCells);
-        var renderer = new SwingRenderer(this);
-
-        while (gameIsRunning) {
-            if (this.gameResetScheduled) {
-                resetGame(board, initLiveCells);
+        while (isRunning) {
+            if (this.scheduledGameReset) {
+                resetGame(board);
             }
 
             rulesEngine.calculateNextGeneration(board);
@@ -105,27 +50,13 @@ public class GameOfLife extends JPanel implements KeyListener {
 
     }
 
-    private void resetGame(GameBoard board, int initLifeNumber) {
+    public void scheduleReset() {
+        this.scheduledGameReset = true;
+    }
+
+    private void resetGame(GameBoard board) {
         board.reset();
-        rulesEngine.seedLife(board, initLifeNumber);
-        this.gameResetScheduled = false;
-    }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            gameResetScheduled = true;
-            repaint();
-        }
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {
-        // intentionally left empty
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        // intentionally left empty
+        rulesEngine.seedLife(board);
+        this.scheduledGameReset = false;
     }
 }
