@@ -3,6 +3,7 @@ package mna.gol;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mna.gol.engine.ClassicGameOfLifeEngine;
 import mna.gol.engine.RulesEngine;
 import mna.gol.entity.Board;
 
@@ -44,7 +45,7 @@ public class GameOfLife extends JPanel implements KeyListener {
     private final transient RulesEngine rulesEngine;
 
     public static void main(String[] args) {
-        var gameOfLife = new GameOfLife(new Board(BOARD_WIDTH, BOARD_HEIGHT), new RulesEngine());
+        var gameOfLife = new GameOfLife(new Board(BOARD_WIDTH, BOARD_HEIGHT), new ClassicGameOfLifeEngine());
         createGameUI(gameOfLife);
     }
 
