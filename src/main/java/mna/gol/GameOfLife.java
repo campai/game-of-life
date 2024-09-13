@@ -45,7 +45,7 @@ public class GameOfLife {
             renderer.render(board);
 
             //noinspection BusyWait
-            Thread.sleep(50);
+            Thread.sleep(30);
         }
 
     }

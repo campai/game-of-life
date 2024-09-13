@@ -11,7 +11,7 @@ import java.awt.image.BufferedImage;
 import javax.swing.*;
 
 @RequiredArgsConstructor
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP2"}, justification = "'canvas' is by design mutable.")
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP2"}, justification = "'uiPanelCanvas' is by design mutable.")
 public class SwingRenderer implements Renderer {
     private static final Color CANVAS_BACKGROUND_COLOR = Color.BLACK;
     private static final Color LIVE_CELL_COLOR = Color.GREEN;
@@ -19,18 +19,20 @@ public class SwingRenderer implements Renderer {
 
     private static final int EDGES_PADDING = 10;
 
-    private final JComponent canvas;
+    private final JComponent uiPanelCanvas;
+    private BufferedImage screenImage;
+    private Graphics2D imageCanvas;
 
     @Override
     public void render(GameBoard board) {
-        var canvasWidth = canvas.getWidth();
-        var canvasHeight = canvas.getHeight();
+        var canvasWidth = uiPanelCanvas.getWidth();
+        var canvasHeight = uiPanelCanvas.getHeight();
 
-        var bufferedImage = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_RGB);
-
-        var image = bufferedImage.createGraphics();
-        image.setBackground(CANVAS_BACKGROUND_COLOR);
-        image.clearRect(0, 0, canvasWidth, canvasHeight);
+        if (screenImage == null || screenImage.getWidth() != canvasWidth || screenImage.getHeight() != canvasHeight) {
+            screenImage = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_RGB);
+            imageCanvas = screenImage.createGraphics();
+            imageCanvas.setBackground(CANVAS_BACKGROUND_COLOR);
+        }
 
         var xScale = (double) (canvasWidth - EDGES_PADDING * 2) / board.getWidth();
         var yScale = (double) (canvasHeight - EDGES_PADDING * 2) / board.getHeight();
@@ -41,19 +43,19 @@ public class SwingRenderer implements Renderer {
                 var isAlive = board.getCellState(x, y) == CellState.LIVE;
                 liveObjects += isAlive ? 1 : 0;
 
-                image.setColor(isAlive ? LIVE_CELL_COLOR : DEAD_CELL_COLOR);
+                imageCanvas.setColor(isAlive ? LIVE_CELL_COLOR : DEAD_CELL_COLOR);
 
                 var xCanvas = EDGES_PADDING + (x * xScale);
                 var yCanvas = EDGES_PADDING + (y * yScale);
-                image.draw(new Ellipse2D.Double(xCanvas, yCanvas, 1, 1));
+                imageCanvas.draw(new Ellipse2D.Double(xCanvas, yCanvas, 1, 1));
             }
         }
 
         var stats = "Live: %06d   Dead: %06d   |   Click <SPACE> to reset.".formatted(liveObjects, (canvasWidth * canvasHeight) - liveObjects);
-        image.setColor(Color.WHITE);
-        image.drawString(stats, 0, canvasHeight);
+        imageCanvas.setColor(Color.WHITE);
+        imageCanvas.drawString(stats, 0, canvasHeight);
 
-        canvas.getGraphics()
-            .drawImage(bufferedImage, 0, 0, null);
+        uiPanelCanvas.getGraphics()
+            .drawImage(screenImage, 0, 0, null);
     }
 }
